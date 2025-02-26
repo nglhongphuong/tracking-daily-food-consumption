@@ -23,21 +23,28 @@ sheet_id = "1mjMrweeCQVRrOiqQRkJGe66DWbzTKsJh"
 csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv"
 df = pd.read_csv(csv_url).dropna().reset_index(drop=True)
 
-cols_to_convert = [col for col in df.columns if col not in ["TÊN THỨC ĂN", "Loại", "Hình"]]
-
+cols_to_convert = [col for col in df.columns if col not in ["TÊN THỨC ĂN", "Loại","Hình"]]
 df[cols_to_convert] = df[cols_to_convert].replace({',': '', ' ': '', 'NA': None}, regex=True)
 df[cols_to_convert] = df[cols_to_convert].apply(pd.to_numeric, errors='coerce')
 df[cols_to_convert] = df[cols_to_convert].fillna(df[cols_to_convert].mean()).astype(int)
 
 # Phân nhóm calo bằng KMeans
+# Chọn các cột số học từ DataFrame
+X = df[cols_to_convert]
+cols = X.columns
+
+# Chuẩn hóa dữ liệu số
 scaler = MinMaxScaler()
-df_scaled = scaler.fit_transform(df[["Calories (kcal)"]])
-kmeans = KMeans(n_clusters=3, random_state=42)
+df_scaled = scaler.fit_transform(X)
+df_scaled = pd.DataFrame(df_scaled, columns=[cols])
+
+
+kmeans = KMeans(n_clusters = 3, init = 'k-means++', random_state = 42)
 df["Calorie Type"] = kmeans.fit_predict(df_scaled)
 df["Calorie Type"] = df["Calorie Type"].map({0: 'Calo thấp', 1: 'Calo trung bình', 2: 'Calo cao'})
 
 # Huấn luyện mô hình Decision Tree
-X_train = df[["Calories (kcal)", "Protein (g)", "Fat (g)", "Carbonhydrates (g)"]]
+X_train = df[cols_to_convert]
 y_train = df["Calorie Type"]
 model = DecisionTreeClassifier(max_depth=2, random_state=42)
 model.fit(X_train, y_train)
@@ -79,17 +86,41 @@ if len(st.session_state.added_meals) > 0:
 # Nhập thông tin món ăn từ người dùng
 st.sidebar.header("📌 Nhập thông tin món ăn")
 ten_mon_an = st.sidebar.text_input("Tên món ăn", "Món ăn của bạn")
-calories = st.sidebar.number_input("Calories (kcal)", 0, 1000, 250)
-protein = st.sidebar.number_input("Protein (g)", 0, 1000, 10)
+calories = st.sidebar.number_input("Calories (kcal)", 0, 1000, 5)
+protein = st.sidebar.number_input("Protein (g)", 0, 1000, 100)
 fat = st.sidebar.number_input("Fat (g)", 0, 1000, 10)
 carbs = st.sidebar.number_input("Carbonhydrates (g)", 0, 1000, 30)
+fiber = st.sidebar.number_input("Chất xơ (g)", 0, 100, 5)
+cholesterol = st.sidebar.number_input("Cholesterol (mg)", 0, 5000, 3000)
+canxi = st.sidebar.number_input("Canxi (mg)", 0, 1000, 100)
+photpho = st.sidebar.number_input("Photpho (mg)", 0, 1000, 100)
+sat = st.sidebar.number_input("Sắt (mg)", 0, 100, 10)
+natri = st.sidebar.number_input("Natri (mg)", 0, 5000, 500)
+kali = st.sidebar.number_input("Kali (mg)", 0, 5000, 1000)
+beta_caroten = st.sidebar.number_input("Beta Caroten (mcg)", 0, 5000, 500)
+vitamin_a = st.sidebar.number_input("Vitamin A (mcg)", 0, 5000, 500)
+vitamin_b1 = st.sidebar.number_input("Vitamin B1 (mg)", 0, 100, 2)
+vitamin_c = st.sidebar.number_input("Vitamin C (mg)", 0, 500, 50)
+
+
 
 if st.sidebar.button("➕ Thêm thức ăn"):
     new_meal = pd.DataFrame({
         'Calories (kcal)': [calories],
         'Protein (g)': [protein],
         'Fat (g)': [fat],
-        'Carbonhydrates (g)': [carbs]
+        'Carbonhydrates (g)': [carbs],
+        'Chất xơ (g)': [fiber],
+        'Cholesterol (mg)': [cholesterol],
+        'Canxi (mg)': [canxi],
+        'Photpho (mg)': [photpho],
+        'Sắt (mg)': [sat],
+        'Natri (mg)': [natri],
+        'Kali (mg)': [kali],
+        'Beta Caroten (mcg)': [beta_caroten],
+        'Vitamin A (mcg)': [vitamin_a],
+        'Vitamin B1 (mg)': [vitamin_b1],
+        'Vitamin C (mg)': [vitamin_c]
     })
     predicted_calo = model.predict(new_meal)[0]
     st.session_state.added_meals.append({
@@ -98,6 +129,17 @@ if st.sidebar.button("➕ Thêm thức ăn"):
         "protein": protein,
         "fat": fat,
         "carbs": carbs,
+           "fiber": fiber,
+        "cholesterol": cholesterol,
+        "canxi": canxi,
+        "photpho": photpho,
+        "sat": sat,
+        "natri": natri,
+        "kali": kali,
+        "beta_caroten": beta_caroten,
+        "vitamin_a": vitamin_a,
+        "vitamin_b1": vitamin_b1,
+        "vitamin_c": vitamin_c,
         "calo_type": predicted_calo
     })
     st.rerun()
@@ -119,6 +161,18 @@ else:
             st.write(f"🔹 Fat: {meal['fat']} g")
             st.write(f"🔹 Carbs: {meal['carbs']} g")
             st.write(f"🔹 Nhóm dinh dưỡng: {meal['calo_type']}")
+            with st.expander("Xem chi tiết dinh dưỡng"):
+                st.write(f"🔹 Chất xơ: {meal['fiber']} g ")
+                st.write(f"🔹 Cholesterol: {meal['cholesterol']} mg ")
+                st.write(f"🔹 Canxi: {meal['canxi']} mg")
+                st.write(f"🔹 Sắt: {meal['sat']} mg ")
+                st.write(f"🔹 Natri: {meal['natri']} mg ")
+                st.write(f"🔹 Kali: {meal['kali']} mg ")
+                st.write(f"🔹 Beta Caroten: {meal['beta_caroten']} mcg")
+                st.write(f"🔹 Vitamin A: {meal['vitamin_a']} mcg")
+                st.write(f"🔹 Vitamin B1: {meal['vitamin_b1']} mg")
+                st.write(f"🔹 Vitamin C: {meal['vitamin_c']} mg")
+                st.write(f"🔹 Nhóm dinh dưỡng: {meal['calo_type']}")
 
             if st.button(f"❌ Xóa {meal['name']}", key=f"delete_{i}"):
                 to_remove = i  # Đánh dấu món ăn cần xóa
