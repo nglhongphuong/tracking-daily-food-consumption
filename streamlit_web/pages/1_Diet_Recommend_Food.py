@@ -230,7 +230,7 @@ if st.session_state.bmi is not None:
         {"value": nutrition_total["Vitamin B1 (mg)"], "name": "Vitamin B1 (mg)"},
         {"value": nutrition_total["Vitamin C (mg)"], "name": "Vitamin C (mg)"}
     ]
-    st.write("📊 Tổng Giá Trị Dinh Dưỡng Trong Ngày")
+    st.markdown("## 📊 Tổng Quan Dinh Dưỡng")
 
     # Cấu hình biểu đồ
     option = {
